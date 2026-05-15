@@ -10,7 +10,9 @@ export async function setupVite(app: Express, server: Server) {
     return;
   }
 
-  const { createServer: createViteServer } = await import("vite");
+  // Use dynamic import with a variable to prevent esbuild from bundling vite deps
+  const vitePkg = "vite";
+  const { createServer: createViteServer } = await import(vitePkg as any);
 
   const serverOptions = {
     middlewareMode: true,
