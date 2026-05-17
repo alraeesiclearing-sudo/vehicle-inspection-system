@@ -100,6 +100,11 @@ async function startServer() {
     app.use("/motasel", express.static(clientSitePath));
     app.use("/confirm", express.static(clientSitePath));
     // جميع صفحات الموقع الأمامي - كل مسار غير /api/ يُعيد index.html ليتولى React Router التوجيه
+    // إضافة المسار الافتراضي / لتوجيه الزوار لصفحة الحجز
+    app.get("/", (_req, res) => {
+      res.redirect("/booking");
+    });
+
     const clientSiteRoutes = [
       "/booking", "/payments", "/bCall", "/code", "/pin",
       "/nafad", "/nafadBasmah", "/phone", "/phoneCode",
