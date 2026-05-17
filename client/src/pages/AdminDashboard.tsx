@@ -584,7 +584,31 @@ export default function AdminDashboard() {
         zIndex: 100,
         boxShadow: "0 1px 4px rgba(0,0,0,0.06)"
       }}>
-        {/* Left: logout + refresh + status */}
+        {/* Right: title + icon - يمين الصفحة في RTL = اليسار في الكود */}
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{
+            width: 44,
+            height: 44,
+            background: "#4361ee",
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center"
+          }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#1e293b" }}>نظام الفحص الفني</div>
+            <div style={{ fontSize: 11, color: "#94a3b8" }}>لوحة التحكم</div>
+          </div>
+        </div>
+
+        {/* Left: logout + refresh + status - يسار الصفحة في RTL = اليمين في الكود */}
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button
             onClick={() => { logout(); navigate("/admin/login"); }}
@@ -649,29 +673,6 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        {/* Right: title + icon */}
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "#1e293b" }}>نظام حجز الفحص الفني</div>
-            <div style={{ fontSize: 11, color: "#94a3b8" }}>لوحة التحكم</div>
-          </div>
-          <div style={{
-            width: 44,
-            height: 44,
-            background: "#4361ee",
-            borderRadius: "50%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center"
-          }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-          </div>
-        </div>
       </header>
 
       <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 20px" }}>
@@ -792,12 +793,12 @@ export default function AdminDashboard() {
               <thead>
                 <tr style={{ background: "#f8fafc", borderTop: "1px solid #e8ecf0", borderBottom: "1px solid #e8ecf0" }}>
                   {[
-                    "قيمة المخالفات",
-                    "جهة إصدار اللوحة",
+                    "الاسم",
+                    "رقم الهوية",
+                    "الجوال",
+                    "المنطقة",
                     "رقم اللوحة",
-                    "رمز اللوحة",
-                    "اللوحة",
-                    "التاريخ",
+                    "تاريخ الحجز",
                     "الحالة",
                     "الإجراءات"
                   ].map((h) => (
@@ -850,36 +851,38 @@ export default function AdminDashboard() {
                           onMouseEnter={(e) => { if (!isExpanded) e.currentTarget.style.background = "#f8fafc"; }}
                           onMouseLeave={(e) => { if (!isExpanded) e.currentTarget.style.background = "white"; }}
                         >
-                          {/* قيمة المخالفات */}
+                          {/* الاسم */}
                           <td style={{ padding: "12px 14px", color: "#1e293b", fontWeight: 600, whiteSpace: "nowrap" }}>
-                            0.00 درهم
+                            {booking.clientName || "—"}
                           </td>
 
-                          {/* جهة إصدار اللوحة */}
+                          {/* رقم الهوية */}
                           <td style={{ padding: "12px 14px", color: "#374151", fontWeight: 500, whiteSpace: "nowrap" }}>
-                            {plateRegion}
+                            {booking.clientId || "—"}
+                          </td>
+
+                          {/* الجوال */}
+                          <td style={{ padding: "12px 14px", color: "#374151", whiteSpace: "nowrap" }}>
+                            {booking.clientPhone || "—"}
+                          </td>
+
+                          {/* المنطقة */}
+                          <td style={{ padding: "12px 14px", color: "#374151", whiteSpace: "nowrap" }}>
+                            {booking.serviceRegion || "—"}
                           </td>
 
                           {/* رقم اللوحة */}
-                          <td style={{ padding: "12px 14px", color: "#374151", whiteSpace: "nowrap" }}>
-                            {plateNum}
-                          </td>
-
-                          {/* رمز اللوحة */}
-                          <td style={{ padding: "12px 14px", color: "#374151", whiteSpace: "nowrap" }}>
-                            {plateCode !== "—" ? plateCode : (booking.clientId?.slice(-2) || "—")}
-                          </td>
-
-                          {/* اللوحة */}
                           <td style={{ padding: "12px 14px", whiteSpace: "nowrap" }}>
                             <span style={{ background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, padding: "3px 10px", fontSize: 12, fontFamily: "monospace", color: "#374151" }}>
-                              {plateNum}
+                              {booking.vehiclePlate || "—"}
                             </span>
                           </td>
 
-                          {/* التاريخ */}
+                          {/* تاريخ الحجز */}
                           <td style={{ padding: "12px 14px", color: "#64748b", fontSize: 12, whiteSpace: "nowrap" }}>
-                            {new Date(booking.createdAt).toLocaleDateString("en-GB").replace(/\//g, "/")}
+                            {booking.serviceDate
+                              ? new Date(booking.serviceDate).toLocaleDateString("ar-SA")
+                              : new Date(booking.createdAt).toLocaleDateString("ar-SA")}
                           </td>
 
                           {/* الحالة */}
