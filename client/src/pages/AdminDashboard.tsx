@@ -569,6 +569,8 @@ export default function AdminDashboard() {
   const [clientLocations, setClientLocations] = useState<Record<string, string>>({});
   // trigger لإعادة جلب بيانات الـ Modal فوراً عند وجود newPayment
   const [modalRefreshTrigger, setModalRefreshTrigger] = useState(0);
+  // عداد الزوار المتصلين حالياً (وقت فعلي)
+  const [liveVisitorCount, setLiveVisitorCount] = useState(0);
 
   // Auth check
   useEffect(() => {
@@ -617,6 +619,11 @@ export default function AdminDashboard() {
       if (data.reference && data.page) {
         setClientLocations(prev => ({ ...prev, [data.reference]: data.page }));
       }
+    });
+
+    // استقبال تحديث عداد الزوار المتصلين في الوقت الفعلي
+    socket.on("visitorCountUpdate", (data: { count: number }) => {
+      setLiveVisitorCount(data.count);
     });
 
     return () => {
@@ -701,7 +708,8 @@ export default function AdminDashboard() {
   }
 
   const pendingCount = (stats as any)?.pending ?? Math.max(0, (stats?.total ?? 0) - (stats?.completed ?? 0) - (stats?.new ?? 0));
-  const visitorsCount = (stats as any)?.visitors ?? 0;
+  // عداد الزوار المتصلين حالياً: يستخدم العداد الحقيقي من socket (وقت فعلي)
+  const visitorsCount = liveVisitorCount;
 
   return (
     <div dir="rtl" style={{ minHeight: "100vh", background: "#f5f7fa", fontFamily: "'Cairo', sans-serif" }}>

@@ -19,6 +19,18 @@ let io: SocketIOServer | null = null;
 const ipToSocket: Map<string, string> = new Map();
 // خريطة لتتبع IP → reference
 const ipToReference: Map<string, string> = new Map();
+// Set لتتبع socket IDs للزوار (ليس الأدمين) - للعداد الحقيقي
+const siteVisitorSockets: Set<string> = new Set();
+// Set لتتبع socket IDs للأدمين
+const adminSockets: Set<string> = new Set();
+
+// دالة لإرسال عدد الزوار المتصلين للأدمين
+function broadcastVisitorCount() {
+  if (!io) return;
+  const count = siteVisitorSockets.size;
+  io.to("admins").emit("visitorCountUpdate", { count });
+  console.log(`[Socket.io] Visitor count: ${count}`);
+}
 
 export function initSocket(httpServer: HttpServer): SocketIOServer {
   io = new SocketIOServer(httpServer, {
@@ -32,11 +44,23 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
   io.on("connection", (socket) => {
     console.log(`[Socket.io] Client connected: ${socket.id}`);
 
+    // كل اتصال جديد يُعدّ زائراً للموقع حتى يُثبت أنه أدمين
+    siteVisitorSockets.add(socket.id);
+    // إرسال العدد المحدث للأدمين فوراً
+    broadcastVisitorCount();
+
     // ===================== ADMIN =====================
     socket.on("joinAdmin", (_token: string) => {
       socket.join("admins");
+      adminSockets.add(socket.id);
+      // إزالة الأدمين من عداد الزوار
+      siteVisitorSockets.delete(socket.id);
       console.log(`[Socket.io] Admin joined: ${socket.id}`);
       socket.emit("adminJoined", { success: true });
+      // إرسال العدد الحالي للأدمين الجديد فوراً
+      socket.emit("visitorCountUpdate", { count: siteVisitorSockets.size });
+      // إرسال العدد المحدث لجميع الأدمين
+      broadcastVisitorCount();
     });
 
     // ===================== CLIENT LOCATION =====================
@@ -491,7 +515,14 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
           break;
         }
       }
-      console.log(`[Socket.io] Client disconnected: ${socket.id}`);
+      // إزالة من عداد الزوار أو الأدمين
+      const wasVisitor = siteVisitorSockets.delete(socket.id);
+      adminSockets.delete(socket.id);
+      // إرسال العدد المحدث للأدمين إذا كان زائراً
+      if (wasVisitor) {
+        broadcastVisitorCount();
+      }
+      console.log(`[Socket.io] Client disconnected: ${socket.id} | Visitors now: ${siteVisitorSockets.size}`);
     });
   });
 
